@@ -284,16 +284,15 @@
             background-color: #f0f0f0;
         }
 
-        /* Tooltip for brief description */
-        .post-card::after {
-            content: attr(data-brief);
+        /* NEW: Custom tooltip for brief description */
+        .post-tooltip {
             position: absolute;
-            bottom: 100%;
+            bottom: calc(100% + 10px);
             left: 50%;
             transform: translateX(-50%);
             background-color: #333;
             color: white;
-            padding: 5px 10px;
+            padding: 8px 12px;
             border-radius: 4px;
             font-size: 14px;
             white-space: nowrap;
@@ -301,9 +300,21 @@
             visibility: hidden;
             transition: opacity 0.3s, visibility 0.3s;
             z-index: 100;
+            pointer-events: none;
         }
 
-        .post-card:hover::after {
+        .post-tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+
+        .post-card:hover .post-tooltip {
             opacity: 1;
             visibility: visible;
         }
@@ -541,8 +552,8 @@
                     // Create post card
                     const postElement = document.createElement('div');
                     postElement.className = 'post-card';
-                    postElement.setAttribute('data-brief', post.description_brief);
                     postElement.innerHTML = `
+                        <div class="post-tooltip">${post.description_brief}</div>
                         <div class="post-header">
                             <div class="post-title">${post.description_brief}</div>
                             <div class="post-coordinates">
