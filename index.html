@@ -149,6 +149,14 @@
             padding: 15px;
             margin-bottom: 15px;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            transition: all 0.3s ease;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .post-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
         .post-header {
@@ -169,12 +177,25 @@
 
         .post-description {
             margin-bottom: 10px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+
+        .post-card:hover .post-description {
+            max-height: 100px;
         }
 
         .post-actions {
             display: flex;
             justify-content: flex-end;
             gap: 10px;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .post-card:hover .post-actions {
+            opacity: 1;
         }
 
         .post-actions button {
@@ -261,6 +282,30 @@
 
         .locate-btn:hover {
             background-color: #f0f0f0;
+        }
+
+        /* Tooltip for brief description */
+        .post-card::after {
+            content: attr(data-brief);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+            z-index: 100;
+        }
+
+        .post-card:hover::after {
+            opacity: 1;
+            visibility: visible;
         }
     </style>
 </head>
@@ -496,6 +541,7 @@
                     // Create post card
                     const postElement = document.createElement('div');
                     postElement.className = 'post-card';
+                    postElement.setAttribute('data-brief', post.description_brief);
                     postElement.innerHTML = `
                         <div class="post-header">
                             <div class="post-title">${post.description_brief}</div>
