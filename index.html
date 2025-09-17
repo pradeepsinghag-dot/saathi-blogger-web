@@ -469,6 +469,7 @@
         // Delete post function
 // Delete post function
 async function deletePost(postId) {
+    showNotification(postId);
     if (!postId) {
         showNotification('Invalid post ID', 'error');
         return;
