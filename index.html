@@ -464,28 +464,40 @@
         //         console.error('Error deleting post:', error);
         //         showNotification('Error deleting post', 'error');
         //     }
-        // }
+        // } 
 
         // Delete post function
+// Delete post function
 async function deletePost(postId) {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    if (!postId) {
+        showNotification('Invalid post ID', 'error');
+        return;
+    }
+    
+    if (!confirm('Are you sure you want to delete this post? ${postId}')) return;
     
     try {
+        console.log(`Deleting post with ID: ${postId}`);
         const response = await fetch(`${apiBaseUrl}/posts/${postId}`, {
             method: 'DELETE'
         });
         
+        console.log(`Delete response status: ${response.status}`);
+        
         if (response.ok) {
+            const result = await response.json();
+            console.log('Delete response:', result);
             showNotification('Post deleted successfully', 'success');
             loadPosts(); // Reload posts
         } else {
-            // Try to parse the error message from the response
-            let errorMsg = 'Failed to delete post';
+            let errorMsg = `Server returned ${response.status}`;
             try {
                 const errorData = await response.json();
-                errorMsg = errorData.detail || errorMsg;
+                if (errorData.detail) {
+                    errorMsg = errorData.detail;
+                }
             } catch (e) {
-                errorMsg = `HTTP error! status: ${response.status}`;
+                // Ignore if no JSON body
             }
             throw new Error(errorMsg);
         }
