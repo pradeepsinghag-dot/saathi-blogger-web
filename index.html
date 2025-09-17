@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saathi Blogger - Web App</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background-color: #4CAF50;
+            color: white;
+            padding: 1rem;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        header h1 {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        header h1 .icon {
+            font-size: 1.8rem;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        @media (min-width: 768px) {
+            .app-container {
+                flex-direction: row;
+            }
+            
+            .map-container {
+                flex: 2;
+            }
+            
+            .form-container {
+                flex: 1;
+            }
+        }
+
+        .map-container {
+            height: 500px;
+            border-radius: 5px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            height: 100%;
+            width: 100%;
+        }
+
+        .form-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: inherit;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #388E3C;
+        }
+
+        .coordinates {
+            background-color: #f9f9f9;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-family: monospace;
+        }
+
+        .posts-container {
+            margin-top: 30px;
+        }
+
+        .posts-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .post-card {
+            background-color: white;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .post-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .post-title {
+            font-weight: 600;
+            font-size: 18px;
+        }
+
+        .post-coordinates {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .post-description {
+            margin-bottom: 10px;
+        }
+
+        .post-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .post-actions button {
+            width: auto;
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        .btn-delete {
+            background-color: #f44336;
+        }
+
+        .btn-delete:hover {
+            background-color: #d32f2f;
+        }
+
+        .btn-audio {
+            background-color: #2196F3;
+        }
+
+        .btn-audio:hover {
+            background-color: #0b7dda;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 5px;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 1000;
+        }
+
+        .success {
+            background-color: #4CAF50;
+        }
+
+        .error {
+            background-color: #f44336;
+        }
+
+        .visible {
+            opacity: 1;
+        }
+
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4CAF50;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: none;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <span class="icon">📍</span>
+                Saathi Blogger
+            </h1>
+        </header>
+
+        <div class="app-container">
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+
+            <div class="form-container">
+                <h2>Create New Post</h2>
+                <form id="post-form">
+                    <div class="form-group">
+                        <label for="brief">Brief Description</label>
+                        <input type="text" id="brief" placeholder="Enter a brief description" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="detail">Detailed Description</label>
+                        <textarea id="detail" placeholder="Enter detailed description" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Coordinates</label>
+                        <div class="coordinates" id="coordinates">Click on the map to select location</div>
+                    </div>
+
+                    <button type="submit">Submit Post</button>
+                </form>
+
+                <div class="loader" id="loader"></div>
+            </div>
+        </div>
+
+        <div class="posts-container">
+            <div class="posts-header">
+                <h2>Recent Posts</h2>
+                <button id="refresh-posts">Refresh</button>
+            </div>
+            <div id="posts-list"></div>
+        </div>
+    </div>
+
+    <div class="notification" id="notification"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Initialize map
+        const map = L.map('map').setView([20.5937, 78.9629], 5); // Default to India
+        
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        // Global variables
+        let selectedLocation = null;
+        let selectedMarker = null;
+        let existingMarkers = [];
+        const apiBaseUrl = 'https://saathi-backend-1cny.onrender.com';
+
+        // Add click event to map
+        map.on('click', function(e) {
+            // Remove previous marker if exists
+            if (selectedMarker) {
+                map.removeLayer(selectedMarker);
+            }
+            
+            // Add new marker
+            selectedMarker = L.marker(e.latlng).addTo(map)
+                .bindPopup('Selected Location').openPopup();
+            
+            // Store coordinates
+            selectedLocation = e.latlng;
+            
+            // Update coordinates display
+            document.getElementById('coordinates').textContent = 
+                `Lat: ${selectedLocation.lat.toFixed(6)}, Lng: ${selectedLocation.lng.toFixed(6)}`;
+        });
+
+        // Handle form submission
+        document.getElementById('post-form').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!selectedLocation) {
+                showNotification('Please select a location on the map', 'error');
+                return;
+            }
+            
+            const brief = document.getElementById('brief').value;
+            const detail = document.getElementById('detail').value;
+            
+            // Show loader
+            document.getElementById('loader').style.display = 'block';
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/posts`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        location: {
+                            type: "Point",
+                            coordinates: [selectedLocation.lng, selectedLocation.lat]
+                        },
+                        description_brief: brief,
+                        description_detail: detail
+                    })
+                });
+                
+                if (response.ok) {
+                    // Reset form
+                    document.getElementById('post-form').reset();
+                    if (selectedMarker) {
+                        map.removeLayer(selectedMarker);
+                        selectedMarker = null;
+                    }
+                    selectedLocation = null;
+                    document.getElementById('coordinates').textContent = 'Click on the map to select location';
+                    
+                    showNotification('Post created successfully!', 'success');
+                    loadPosts(); // Reload posts
+                } else {
+                    throw new Error('Failed to create post');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showNotification('Error creating post. Please try again.', 'error');
+            } finally {
+                // Hide loader
+                document.getElementById('loader').style.display = 'none';
+            }
+        });
+
+        // Load existing posts
+        async function loadPosts() {
+            try {
+                const response = await fetch(`${apiBaseUrl}/posts`);
+                const posts = await response.json();
+                
+                // Clear existing markers
+                existingMarkers.forEach(marker => map.removeLayer(marker));
+                existingMarkers = [];
+                
+                // Display posts
+                const postsList = document.getElementById('posts-list');
+                postsList.innerHTML = '';
+                
+                posts.forEach(post => {
+                    // Add marker for each post
+                    const marker = L.marker([post.location.coordinates[1], post.location.coordinates[0]])
+                        .addTo(map)
+                        .bindPopup(`
+                            <strong>${post.description_brief}</strong><br>
+                            ${post.description_detail}
+                        `);
+                    
+                    existingMarkers.push(marker);
+                    
+                    // Create post card
+                    const postElement = document.createElement('div');
+                    postElement.className = 'post-card';
+                    postElement.innerHTML = `
+                        <div class="post-header">
+                            <div class="post-title">${post.description_brief}</div>
+                            <div class="post-coordinates">
+                                ${post.location.coordinates[1].toFixed(6)}, ${post.location.coordinates[0].toFixed(6)}
+                            </div>
+                        </div>
+                        <div class="post-description">${post.description_detail}</div>
+                        <div class="post-actions">
+                            <button class="btn-audio" data-id="${post._id}">Play Audio</button>
+                            <button class="btn-delete" data-id="${post._id}">Delete</button>
+                        </div>
+                    `;
+                    
+                    postsList.appendChild(postElement);
+                });
+                
+                // Add event listeners to buttons
+                document.querySelectorAll('.btn-delete').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const postId = this.getAttribute('data-id');
+                        deletePost(postId);
+                    });
+                });
+                
+                document.querySelectorAll('.btn-audio').forEach(button => {
+                    button.addEventListener('click', function() {
+                        const postId = this.getAttribute('data-id');
+                        playAudio(postId);
+                    });
+                });
+                
+            } catch (error) {
+                console.error('Error loading posts:', error);
+                showNotification('Error loading posts', 'error');
+            }
+        }
+
+        // Delete post function
+        async function deletePost(postId) {
+            if (!confirm('Are you sure you want to delete this post?')) return;
+            
+            try {
+                const response = await fetch(`${apiBaseUrl}/posts/${postId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    showNotification('Post deleted successfully', 'success');
+                    loadPosts(); // Reload posts
+                } else {
+                    throw new Error('Failed to delete post');
+                }
+            } catch (error) {
+                console.error('Error deleting post:', error);
+                showNotification('Error deleting post', 'error');
+            }
+        }
+
+        // Play audio function
+        function playAudio(postId) {
+            const audioUrl = `${apiBaseUrl}/tts/post/${postId}`;
+            const audio = new Audio(audioUrl);
+            audio.play().catch(error => {
+                console.error('Error playing audio:', error);
+                showNotification('Error playing audio', 'error');
+            });
+        }
+
+        // Show notification function
+        function showNotification(message, type) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} visible`;
+            
+            setTimeout(() => {
+                notification.className = 'notification';
+            }, 3000);
+        }
+
+        // Refresh posts button
+        document.getElementById('refresh-posts').addEventListener('click', loadPosts);
+
+        // Initial load
+        loadPosts();
+    </script>
+</body>
+</html>
