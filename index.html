@@ -428,7 +428,6 @@
                 document.querySelectorAll('.btn-delete').forEach(button => {
                     button.addEventListener('click', function() {
                         const postId = this.getAttribute('data-id');
-                        console.error('pradeep');
                         deletePost(postId);
                     });
                 });
@@ -469,17 +468,60 @@
 
         // Delete post function
 // Delete post function
-async function deletePost(postId) {
+// async function deletePost(postId) {
 
+//     if (!postId) {
+//         showNotification('Invalid post ID', 'error');
+//         return;
+//     }
+    
+//     if (!confirm('Are you sure you want to delete this post?')) return;
+    
+//     if (!confirm(confirmationMessage)) return;
+
+    
+//     try {
+//         console.log(`Deleting post with ID: ${postId}`);
+//         const response = await fetch(`${apiBaseUrl}/posts/${postId}`, {
+//             method: 'DELETE'
+//         });
+        
+//         console.log(`Delete response status: ${response.status}`);
+        
+//         if (response.ok) {
+//             const result = await response.json();
+//             console.log('Delete response:', result);
+//             showNotification('Post deleted successfully', 'success');
+//             loadPosts(); // Reload posts
+//         } else {
+//             let errorMsg = `Server returned ${response.status}`;
+//             try {
+//                 const errorData = await response.json();
+//                 if (errorData.detail) {
+//                     errorMsg = errorData.detail;
+//                 }
+//             } catch (e) {
+//                 // Ignore if no JSON body
+//             }
+//             throw new Error(errorMsg);
+//         }
+//     } catch (error) {
+//         console.error(postId);
+//         console.error('Error deleting post:', error);
+//         showNotification(`Error deleting post: ${error.message}`, 'error');
+//     }
+// }
+
+async function deletePost(postId) {
     if (!postId) {
         showNotification('Invalid post ID', 'error');
         return;
     }
     
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    // Create confirmation message with post ID
+    const confirmationMessage = `Are you sure you want to delete the post with ID: ${postId}?`;
     
     if (!confirm(confirmationMessage)) return;
-
     
     try {
         console.log(`Deleting post with ID: ${postId}`);
