@@ -428,6 +428,7 @@
                 document.querySelectorAll('.btn-delete').forEach(button => {
                     button.addEventListener('click', function() {
                         const postId = this.getAttribute('data-id');
+                        console.error('pradeep');
                         deletePost(postId);
                     });
                 });
@@ -475,10 +476,7 @@ async function deletePost(postId) {
         return;
     }
     
-    // if (!confirm('Are you sure you want to delete this post?')) return;
-    
-    const confirmationMessage  =
-         `Are you sure you want to delete the post with ID: ${postId}?`;
+    if (!confirm('Are you sure you want to delete this post?')) return;
     
     if (!confirm(confirmationMessage)) return;
 
