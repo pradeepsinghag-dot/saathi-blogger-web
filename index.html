@@ -116,12 +116,28 @@
             cursor: pointer;
             font-size: 16px;
             font-weight: 600;
-            width: 100%;
             transition: background-color 0.3s;
         }
 
         button:hover {
             background-color: #388E3C;
+        }
+
+        .form-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-buttons button {
+            flex: 1;
+        }
+
+        .btn-cancel {
+            background-color: #9e9e9e;
+        }
+
+        .btn-cancel:hover {
+            background-color: #757575;
         }
 
         .coordinates {
@@ -220,6 +236,14 @@
             background-color: #0b7dda;
         }
 
+        .btn-edit {
+            background-color: #FF9800;
+        }
+
+        .btn-edit:hover {
+            background-color: #F57C00;
+        }
+
         .notification {
             position: fixed;
             top: 20px;
@@ -284,7 +308,7 @@
             background-color: #f0f0f0;
         }
 
-        /* NEW: Custom tooltip for brief description */
+        /* Custom tooltip for brief description */
         .post-tooltip {
             position: absolute;
             bottom: calc(100% + 10px);
@@ -318,6 +342,19 @@
             opacity: 1;
             visibility: visible;
         }
+
+        /* Edit mode styles */
+        .edit-mode .form-title {
+            color: #FF9800;
+        }
+
+        .edit-mode #submit-btn {
+            background-color: #FF9800;
+        }
+
+        .edit-mode #submit-btn:hover {
+            background-color: #F57C00;
+        }
     </style>
 </head>
 <body>
@@ -337,7 +374,7 @@
             </div>
 
             <div class="form-container">
-                <h2>Create New Post</h2>
+                <h2 class="form-title" id="form-title">Create New Post</h2>
                 <form id="post-form">
                     <div class="form-group">
                         <label for="brief">Brief Description</label>
@@ -354,7 +391,10 @@
                         <div class="coordinates" id="coordinates">Click on the map to select location</div>
                     </div>
 
-                    <button type="submit">Submit Post</button>
+                    <div class="form-buttons">
+                        <button type="submit" id="submit-btn">Submit Post</button>
+                        <button type="button" class="btn-cancel" id="cancel-btn" style="display: none;">Cancel</button>
+                    </div>
                 </form>
 
                 <div class="loader" id="loader"></div>
@@ -387,6 +427,7 @@
         let selectedMarker = null;
         let userLocationMarker = null;
         let existingMarkers = [];
+        let editingPostId = null; // Track which post is being edited
         const apiBaseUrl = 'https://saathi-backend-1cny.onrender.com';
 
         // Add click event to map
@@ -485,44 +526,123 @@
             document.getElementById('loader').style.display = 'block';
             
             try {
-                const response = await fetch(`${apiBaseUrl}/posts`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        location: {
-                            type: "Point",
-                            coordinates: [selectedLocation.lng, selectedLocation.lat]
+                let response;
+                
+                if (editingPostId) {
+                    // Update existing post
+                    response = await fetch(`${apiBaseUrl}/posts/${editingPostId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
                         },
-                        description_brief: brief,
-                        description_detail: detail
-                    })
-                });
+                        body: JSON.stringify({
+                            location: {
+                                type: "Point",
+                                coordinates: [selectedLocation.lng, selectedLocation.lat]
+                            },
+                            description_brief: brief,
+                            description_detail: detail
+                        })
+                    });
+                } else {
+                    // Create new post
+                    response = await fetch(`${apiBaseUrl}/posts`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            location: {
+                                type: "Point",
+                                coordinates: [selectedLocation.lng, selectedLocation.lat]
+                            },
+                            description_brief: brief,
+                            description_detail: detail
+                        })
+                    });
+                }
                 
                 if (response.ok) {
                     // Reset form
-                    document.getElementById('post-form').reset();
-                    if (selectedMarker) {
-                        map.removeLayer(selectedMarker);
-                        selectedMarker = null;
-                    }
-                    selectedLocation = null;
-                    document.getElementById('coordinates').textContent = 'Click on the map to select location';
+                    resetForm();
                     
-                    showNotification('Post created successfully!', 'success');
+                    showNotification(
+                        editingPostId ? 'Post updated successfully!' : 'Post created successfully!', 
+                        'success'
+                    );
                     loadPosts(); // Reload posts
                 } else {
-                    throw new Error('Failed to create post');
+                    throw new Error(editingPostId ? 'Failed to update post' : 'Failed to create post');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showNotification('Error creating post. Please try again.', 'error');
+                showNotification(
+                    editingPostId ? 'Error updating post. Please try again.' : 'Error creating post. Please try again.', 
+                    'error'
+                );
             } finally {
                 // Hide loader
                 document.getElementById('loader').style.display = 'none';
             }
         });
+
+        // Cancel edit mode
+        document.getElementById('cancel-btn').addEventListener('click', resetForm);
+
+        // Function to reset the form
+        function resetForm() {
+            document.getElementById('post-form').reset();
+            if (selectedMarker) {
+                map.removeLayer(selectedMarker);
+                selectedMarker = null;
+            }
+            selectedLocation = null;
+            editingPostId = null;
+            document.getElementById('coordinates').textContent = 'Click on the map to select location';
+            
+            // Reset UI to create mode
+            document.getElementById('form-title').textContent = 'Create New Post';
+            document.getElementById('submit-btn').textContent = 'Submit Post';
+            document.getElementById('cancel-btn').style.display = 'none';
+            document.querySelector('.form-container').classList.remove('edit-mode');
+        }
+
+        // Function to populate form for editing
+        function populateFormForEditing(post) {
+            // Set form values
+            document.getElementById('brief').value = post.description_brief;
+            document.getElementById('detail').value = post.description_detail;
+            
+            // Set location
+            selectedLocation = {
+                lat: post.location.coordinates[1],
+                lng: post.location.coordinates[0]
+            };
+            
+            // Update coordinates display
+            document.getElementById('coordinates').textContent = 
+                `Lat: ${selectedLocation.lat.toFixed(6)}, Lng: ${selectedLocation.lng.toFixed(6)}`;
+            
+            // Remove previous marker if exists
+            if (selectedMarker) {
+                map.removeLayer(selectedMarker);
+            }
+            
+            // Add marker for the post location
+            selectedMarker = L.marker([selectedLocation.lat, selectedLocation.lng])
+                .addTo(map)
+                .bindPopup('Selected Location').openPopup();
+            
+            // Pan map to the post location
+            map.panTo([selectedLocation.lat, selectedLocation.lng]);
+            
+            // Set editing mode
+            editingPostId = post.id;
+            document.getElementById('form-title').textContent = 'Edit Post';
+            document.getElementById('submit-btn').textContent = 'Update Post';
+            document.getElementById('cancel-btn').style.display = 'block';
+            document.querySelector('.form-container').classList.add('edit-mode');
+        }
 
         // Load existing posts
         async function loadPosts() {
@@ -563,6 +683,7 @@
                         <div class="post-description">${post.description_detail}</div>
                         <div class="post-actions">
                             <button class="btn-audio" data-id="${post.id}">Play Audio</button>
+                            <button class="btn-edit" data-id="${post.id}">Edit</button>
                             <button class="btn-delete" data-id="${post.id}">Delete</button>
                         </div>
                     `;
@@ -572,16 +693,29 @@
                 
                 // Add event listeners to buttons
                 document.querySelectorAll('.btn-delete').forEach(button => {
-                    button.addEventListener('click', function() {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent triggering post card hover effects
                         const postId = this.getAttribute('data-id');
                         deletePost(postId);
                     });
                 });
                 
                 document.querySelectorAll('.btn-audio').forEach(button => {
-                    button.addEventListener('click', function() {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent triggering post card hover effects
                         const postId = this.getAttribute('data-id');
                         playAudio(postId);
+                    });
+                });
+                
+                document.querySelectorAll('.btn-edit').forEach(button => {
+                    button.addEventListener('click', function(e) {
+                        e.stopPropagation(); // Prevent triggering post card hover effects
+                        const postId = this.getAttribute('data-id');
+                        const post = posts.find(p => p.id === postId);
+                        if (post) {
+                            populateFormForEditing(post);
+                        }
                     });
                 });
                 
